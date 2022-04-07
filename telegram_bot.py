@@ -1,3 +1,5 @@
+from textwrap import dedent
+
 from redis import Redis
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Filters, Updater, CallbackContext
@@ -26,8 +28,17 @@ def start(update: Update):
 
 
 def handle_menu_choose(update: Update):
+    product = elasticpath.get_product(update.callback_query.data)
+
     update.callback_query.message.edit_text(
-        f'Вы выбрали: {update.callback_query.data}'
+        dedent(f"""
+        {product['name']}
+        
+        {product['meta']['display_price']['with_tax']['formatted']} за кг
+        {product['meta']['stock']['level']} кг доступно
+        
+        {product['description']}
+        """)
     )
     return 'MENU_CHOOSE'
 
