@@ -64,3 +64,19 @@ def get_product(product_id):
     product = response.json()['data']
 
     return product
+
+
+def get_image(image_id):
+    token = get_token()
+    headers = {
+        'Authorization': f'Bearer {token}'
+    }
+
+    response = requests.get(
+        f'https://api.moltin.com/v2/files/{image_id}', headers=headers
+    )
+    response.raise_for_status()
+
+    image = response.json()['data']
+
+    return image

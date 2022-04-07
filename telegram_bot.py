@@ -30,16 +30,25 @@ def start(update: Update):
 def handle_menu_choose(update: Update):
     product = elasticpath.get_product(update.callback_query.data)
 
-    update.callback_query.message.edit_text(
-        dedent(f"""
-        {product['name']}
-        
-        {product['meta']['display_price']['with_tax']['formatted']} за кг
-        {product['meta']['stock']['level']} кг доступно
-        
-        {product['description']}
-        """)
+    image_id = product['relationships']['main_image']['data']['id']
+    image_url = elasticpath.get_image(image_id)['link']['href']
+
+    update.callback_query.message.reply_photo(
+        photo=image_url,
+        caption=dedent(
+            f"""
+            {product['name']}
+            
+            {product['meta']['display_price']['with_tax']['formatted']} за кг
+            {product['meta']['stock']['level']} кг доступно
+            
+            {product['description']}
+            """
+        ),
     )
+
+    update.callback_query.message.delete()
+
     return 'MENU_CHOOSE'
 
 
