@@ -1,7 +1,10 @@
 from textwrap import dedent
 
 from redis import Redis
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import (Update,
+                      InlineKeyboardButton,
+                      InlineKeyboardMarkup,
+                      Message)
 from telegram.ext import Filters, Updater, CallbackContext
 from telegram.ext import CallbackQueryHandler, CommandHandler, MessageHandler
 
@@ -19,10 +22,18 @@ def start(update: Update):
 
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    update.message.reply_text(
+    if update.callback_query:
+        message = update.callback_query.message
+    else:
+        message = update.message
+
+    message.reply_text(
         'Пожалуйста, выберите:',
         reply_markup=reply_markup
     )
+
+    if update.callback_query:
+        message.delete()
 
     return 'MENU_CHOOSE'
 
@@ -32,6 +43,12 @@ def handle_menu_choose(update: Update):
 
     image_id = product['relationships']['main_image']['data']['id']
     image_url = elasticpath.get_image(image_id)['link']['href']
+
+    keyboard = [
+        [InlineKeyboardButton('Назад', callback_data='/back')]
+    ]
+
+    reply_markup = InlineKeyboardMarkup(keyboard)
 
     update.callback_query.message.reply_photo(
         photo=image_url,
@@ -45,11 +62,17 @@ def handle_menu_choose(update: Update):
             {product['description']}
             """
         ),
+        reply_markup=reply_markup
     )
 
     update.callback_query.message.delete()
 
-    return 'MENU_CHOOSE'
+    return 'DESCRIPTION'
+
+
+def handle_product_description(update: Update):
+    if update.callback_query.data == '/back':
+        return start(update)
 
 
 def handle_users_reply(update: Update, context: CallbackContext):
@@ -71,7 +94,8 @@ def handle_users_reply(update: Update, context: CallbackContext):
 
     states_functions = {
         'START': start,
-        'MENU_CHOOSE': handle_menu_choose
+        'MENU_CHOOSE': handle_menu_choose,
+        'DESCRIPTION': handle_product_description
     }
 
     state_handler = states_functions[user_state]
