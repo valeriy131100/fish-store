@@ -1,22 +1,39 @@
 from redis import Redis
-from telegram.ext import Filters, Updater
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Filters, Updater, CallbackContext
 from telegram.ext import CallbackQueryHandler, CommandHandler, MessageHandler
 
 import config
 
 
-def start(update):
-    update.message.reply_text('Привет!')
-    return 'ECHO'
+def start(update: Update):
+    keyboard = [
+        [
+            InlineKeyboardButton("Option 1", callback_data='1'),
+            InlineKeyboardButton("Option 2", callback_data='2')
+        ],
+        [
+            InlineKeyboardButton("Option 3", callback_data='3')]
+    ]
+
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    update.message.reply_text(
+        'Пожалуйста, выберите:',
+        reply_markup=reply_markup
+    )
+
+    return 'MENU_CHOOSE'
 
 
-def echo(update):
-    users_reply = update.message.text
-    update.message.reply_text(users_reply)
-    return 'ECHO'
+def handle_menu_choose(update: Update):
+    update.callback_query.message.edit_text(
+        f'Вы выбрали: {update.callback_query.data}'
+    )
+    return 'MENU_CHOOSE'
 
 
-def handle_users_reply(update, context):
+def handle_users_reply(update: Update, context: CallbackContext):
     redis = context.bot_data['redis']
 
     if update.message:
@@ -35,7 +52,7 @@ def handle_users_reply(update, context):
 
     states_functions = {
         'START': start,
-        'ECHO': echo
+        'MENU_CHOOSE': handle_menu_choose
     }
 
     state_handler = states_functions[user_state]
