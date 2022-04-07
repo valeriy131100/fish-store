@@ -4,16 +4,15 @@ from telegram.ext import Filters, Updater, CallbackContext
 from telegram.ext import CallbackQueryHandler, CommandHandler, MessageHandler
 
 import config
+import elasticpath
 
 
 def start(update: Update):
+    products = elasticpath.get_products()
+
     keyboard = [
-        [
-            InlineKeyboardButton("Option 1", callback_data='1'),
-            InlineKeyboardButton("Option 2", callback_data='2')
-        ],
-        [
-            InlineKeyboardButton("Option 3", callback_data='3')]
+        [InlineKeyboardButton(product['name'], callback_data=product['id'])]
+        for product in products
     ]
 
     reply_markup = InlineKeyboardMarkup(keyboard)
