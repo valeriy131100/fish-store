@@ -31,6 +31,7 @@ $ pip install -r requirements.txt
 * `TELEGRAM_TOKEN` - токен бота Telegram. Можно получить у [@BotFather](https://t.me/BotFather).
 * `ELASTICSEARCH_CLIENT_ID` - id клиента магазина Elastic Search. Находится в разделе `Home`. Продукты для продажи необходимо добавлять в разделе `Catalog (legacy edition)`, а не `Products`.
 * `ELASTICSEARCH_CLIENT_SECRET` - секретный ключ магазина Elastic Search. Находится также в разделе `Home`.
+* `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD` - данные для подключения как базе данных [Redis](https://redis.io/). По умолчанию - `localhost`, `6379` и `None`.
 
 ### Запуск
 Находясь в директории fish-store исполните:
