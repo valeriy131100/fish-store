@@ -97,7 +97,8 @@ def show_product_description(update: Update, _, elasticpath: ElasticPath):
             )
             for weight in [1, 3, 5]
         ],
-        [InlineKeyboardButton('Назад', callback_data='/back')]
+        [InlineKeyboardButton('Корзина', callback_data='/cart')],
+        [InlineKeyboardButton('Назад', callback_data='/back')],
     ]
 
     reply_markup = InlineKeyboardMarkup(keyboard)
