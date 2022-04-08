@@ -12,7 +12,7 @@ import config
 import elasticpath
 
 
-def start(update: Update):
+def start(update: Update, _):
     products = elasticpath.get_products()
 
     keyboard = [
@@ -38,13 +38,20 @@ def start(update: Update):
     return 'MENU_CHOOSE'
 
 
-def handle_menu_choose(update: Update):
+def handle_menu_choose(update: Update, _):
     product = elasticpath.get_product(update.callback_query.data)
 
     image_id = product['relationships']['main_image']['data']['id']
     image_url = elasticpath.get_image(image_id)['link']['href']
 
     keyboard = [
+        [
+            InlineKeyboardButton(
+                f'{weight}кг',
+                callback_data=f'/buy {product["id"]} {weight}'
+            )
+            for weight in [1, 3, 5]
+        ],
         [InlineKeyboardButton('Назад', callback_data='/back')]
     ]
 
@@ -70,9 +77,23 @@ def handle_menu_choose(update: Update):
     return 'DESCRIPTION'
 
 
-def handle_product_description(update: Update):
+def handle_product_description(update: Update, redis: Redis):
     if update.callback_query.data == '/back':
-        return start(update)
+        return start(update, redis)
+    elif update.callback_query.data.startswith('/buy'):
+        _, product_id, weight = update.callback_query.data.split()
+
+        chat_id = update.callback_query.message.chat_id
+
+        cart_id = redis.get(f'cart-{chat_id}')
+        if cart_id is None:
+            cart = elasticpath.create_cart(chat_id)
+            cart_id = cart['id']
+            redis.set(f'cart-{chat_id}', cart_id)
+
+        elasticpath.add_product_to_cart(cart_id, product_id, int(weight))
+
+        return 'DESCRIPTION'
 
 
 def handle_users_reply(update: Update, context: CallbackContext):
@@ -90,7 +111,7 @@ def handle_users_reply(update: Update, context: CallbackContext):
     if user_reply == '/start':
         user_state = 'START'
     else:
-        user_state = redis.get(f'{chat_id}').decode("utf-8")
+        user_state = redis.get(f'state-{chat_id}').decode("utf-8")
 
     states_functions = {
         'START': start,
@@ -100,8 +121,8 @@ def handle_users_reply(update: Update, context: CallbackContext):
 
     state_handler = states_functions[user_state]
 
-    next_state = state_handler(update)
-    redis.set(chat_id, next_state)
+    next_state = state_handler(update, redis)
+    redis.set(f'state-{chat_id}', next_state)
 
 
 if __name__ == '__main__':

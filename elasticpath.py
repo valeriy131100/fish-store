@@ -80,3 +80,48 @@ def get_image(image_id):
     image = response.json()['data']
 
     return image
+
+
+def create_cart(user_id):
+    token = get_token()
+    headers = {
+        'Authorization': f'Bearer {token}'
+    }
+
+    response = requests.post(
+        'https://api.moltin.com/v2/carts',
+        headers=headers,
+        json={
+            'data': {
+                'name': f'Cart of user {user_id}',
+                'description': f'Cart of user {user_id} in FishStore'
+            }
+        },
+    )
+    response.raise_for_status()
+
+    cart = response.json()['data']
+    return cart
+
+
+def add_product_to_cart(cart_id, product_id, quantity):
+    token = get_token()
+    headers = {
+        'Authorization': f'Bearer {token}'
+    }
+
+    response = requests.post(
+        f'https://api.moltin.com/v2/carts/{cart_id}/items',
+        headers=headers,
+        json={
+            'data': {
+                'id': product_id,
+                'type': 'cart_item',
+                'quantity': quantity
+            }
+        }
+    )
+    response.raise_for_status()
+
+    cart = response.json()['data']
+    return cart
