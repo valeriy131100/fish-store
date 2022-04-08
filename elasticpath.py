@@ -104,3 +104,17 @@ class ElasticPath:
             requests.delete,
             f'/carts/{cart_id}/items/{item_id}'
         )
+
+    def create_customer(self, chat_id, email):
+        return self.make_api_call(
+            requests.post,
+            f'/customers',
+            json={
+                'data': {
+                    'type': 'customer',
+                    'name': chat_id,
+                    'email': email,
+                    'password': 'replace_me_in_the_future'
+                }
+            }
+        )

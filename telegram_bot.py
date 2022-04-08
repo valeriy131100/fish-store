@@ -41,6 +41,10 @@ def show_cart(update: Update, redis: Redis, elasticpath: ElasticPath):
     ]
 
     keyboard.append(
+        [InlineKeyboardButton('Оплатить', callback_data='/pay')]
+    )
+
+    keyboard.append(
         [InlineKeyboardButton('В меню', callback_data='/menu')]
     )
 
@@ -209,6 +213,25 @@ def handle_cart(update: Update, redis: Redis, elasticpath: ElasticPath):
 
         elasticpath.remove_product_from_cart(cart_id, item_id)
         return show_cart(update, redis, elasticpath)
+    elif callback == '/pay':
+        update.callback_query.message.reply_text(
+            'Пришлите мне, пожалуйста, свою почту'
+        )
+
+        return 'WAITING_EMAIL'
+
+
+def handle_email(update: Update, _, elasticpath: ElasticPath):
+    email = update.message.text
+    chat_id = update.message.chat_id
+
+    elasticpath.create_customer(chat_id, email)
+
+    update.message.reply_text(
+        'Мы с вами свяжемся!'
+    )
+
+    return 'START'
 
 
 def handle_users_reply(update: Update, context: CallbackContext):
@@ -233,7 +256,8 @@ def handle_users_reply(update: Update, context: CallbackContext):
         'START': start,
         'MENU_CHOOSE': handle_menu_choose,
         'DESCRIPTION': handle_product_description,
-        'CART': handle_cart
+        'CART': handle_cart,
+        'WAITING_EMAIL': handle_email
     }
 
     state_handler = states_functions[user_state]
