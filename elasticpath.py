@@ -2,126 +2,87 @@ from datetime import datetime
 
 import requests
 
-import config
 
-_token = None
-_expires = None
+class ElasticPath:
+    API_BASE = 'https://api.moltin.com/v2'
 
+    def __init__(self, client_id, client_secret):
+        self.client_id = client_id
+        self.client_secret = client_secret
+        self._token = None
+        self._expires = None
 
-def get_token():
-    global _token, _expires
+    def get_token(self):
+        if self._token and (self._expires > datetime.now()):
+            return self._token
 
-    if _token and _expires > datetime.now():
-        return _token
-
-    response = requests.post(
-        'https://api.moltin.com/oauth/access_token',
-        data={
-            'client_id': config.elasticpath_client_id,
-            'client_secret': config.elasticpath_client_secret,
-            'grant_type': 'client_credentials'
-        }
-    )
-
-    response.raise_for_status()
-
-    credentials = response.json()
-
-    _token = credentials['access_token']
-    _expires = datetime.fromtimestamp(credentials['expires'])
-
-    return _token
-
-
-def get_products():
-    token = get_token()
-    headers = {
-        'Authorization': f'Bearer {token}'
-    }
-
-    response = requests.get(
-        'https://api.moltin.com/v2/products',
-        headers=headers
-    )
-    response.raise_for_status()
-
-    products = response.json()['data']
-
-    return products
-
-
-def get_product(product_id):
-    token = get_token()
-    headers = {
-        'Authorization': f'Bearer {token}'
-    }
-
-    response = requests.get(
-        f'https://api.moltin.com/v2/products/{product_id}', headers=headers
-    )
-    response.raise_for_status()
-
-    product = response.json()['data']
-
-    return product
-
-
-def get_image(image_id):
-    token = get_token()
-    headers = {
-        'Authorization': f'Bearer {token}'
-    }
-
-    response = requests.get(
-        f'https://api.moltin.com/v2/files/{image_id}', headers=headers
-    )
-    response.raise_for_status()
-
-    image = response.json()['data']
-
-    return image
-
-
-def create_cart(user_id):
-    token = get_token()
-    headers = {
-        'Authorization': f'Bearer {token}'
-    }
-
-    response = requests.post(
-        'https://api.moltin.com/v2/carts',
-        headers=headers,
-        json={
-            'data': {
-                'name': f'Cart of user {user_id}',
-                'description': f'Cart of user {user_id} in FishStore'
+        response = requests.post(
+            'https://api.moltin.com/oauth/access_token',
+            data={
+                'client_id': self.client_id,
+                'client_secret': self.client_secret,
+                'grant_type': 'client_credentials'
             }
-        },
-    )
-    response.raise_for_status()
+        )
+        response.raise_for_status()
 
-    cart = response.json()['data']
-    return cart
+        credentials = response.json()
 
+        self._token = credentials['access_token']
+        self._expires = datetime.fromtimestamp(credentials['expires'])
 
-def add_product_to_cart(cart_id, product_id, quantity):
-    token = get_token()
-    headers = {
-        'Authorization': f'Bearer {token}'
-    }
+        return self._token
 
-    response = requests.post(
-        f'https://api.moltin.com/v2/carts/{cart_id}/items',
-        headers=headers,
-        json={
-            'data': {
-                'id': product_id,
-                'type': 'cart_item',
-                'quantity': quantity
-            }
+    def make_api_call(self, method, path, **kwargs):
+        token = self.get_token()
+        headers = {
+            'Authorization': f'Bearer {token}'
         }
-    )
-    response.raise_for_status()
 
-    cart = response.json()['data']
-    return cart
+        response: requests.Response = method(
+            f'{self.API_BASE}{path}',
+            headers=headers,
+            **kwargs
+        )
+        response.raise_for_status()
+
+        api_answer = response.json()['data']
+
+        return api_answer
+
+    def get_products(self):
+        return self.make_api_call(requests.get, '/products')
+
+    def get_product(self, product_id):
+        return self.make_api_call(requests.get, f'/products/{product_id}')
+
+    def get_image(self, image_id):
+        return self.make_api_call(
+            requests.get,
+            f'/files/{image_id}'
+        )
+
+    def create_cart(self, user_id):
+        return self.make_api_call(
+            requests.post,
+            '/carts',
+            json={
+                'data': {
+                    'name': f'Cart of user {user_id}',
+                    'description': f'Cart of user {user_id} in FishStore'
+                }
+            }
+        )
+
+    def add_product_to_cart(self, cart_id, product_id, quantity):
+        return self.make_api_call(
+            requests.post,
+            f'/carts/{cart_id}/items',
+            json={
+                'data': {
+                    'id': product_id,
+                    'type': 'cart_item',
+                    'quantity': quantity
+                }
+            }
+        )

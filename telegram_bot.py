@@ -9,10 +9,10 @@ from telegram.ext import Filters, Updater, CallbackContext
 from telegram.ext import CallbackQueryHandler, CommandHandler, MessageHandler
 
 import config
-import elasticpath
+from elasticpath import ElasticPath
 
 
-def start(update: Update, _):
+def start(update: Update, _, elasticpath: ElasticPath):
     products = elasticpath.get_products()
 
     keyboard = [
@@ -38,7 +38,7 @@ def start(update: Update, _):
     return 'MENU_CHOOSE'
 
 
-def handle_menu_choose(update: Update, _):
+def handle_menu_choose(update: Update, _, elasticpath: ElasticPath):
     product = elasticpath.get_product(update.callback_query.data)
 
     image_id = product['relationships']['main_image']['data']['id']
@@ -77,9 +77,10 @@ def handle_menu_choose(update: Update, _):
     return 'DESCRIPTION'
 
 
-def handle_product_description(update: Update, redis: Redis):
+def handle_product_description(update: Update, redis: Redis,
+                               elasticpath: ElasticPath):
     if update.callback_query.data == '/back':
-        return start(update, redis)
+        return start(update, redis, elasticpath)
     elif update.callback_query.data.startswith('/buy'):
         _, product_id, weight = update.callback_query.data.split()
 
@@ -98,6 +99,7 @@ def handle_product_description(update: Update, redis: Redis):
 
 def handle_users_reply(update: Update, context: CallbackContext):
     redis = context.bot_data['redis']
+    elasticpath = context.bot_data['elasticpath']
 
     if update.message:
         user_reply = update.message.text
@@ -121,7 +123,7 @@ def handle_users_reply(update: Update, context: CallbackContext):
 
     state_handler = states_functions[user_state]
 
-    next_state = state_handler(update, redis)
+    next_state = state_handler(update, redis, elasticpath)
     redis.set(f'state-{chat_id}', next_state)
 
 
@@ -134,6 +136,11 @@ if __name__ == '__main__':
         host=config.redis_host,
         port=config.redis_port,
         password=config.redis_password
+    )
+
+    dispatcher.bot_data['elasticpath'] = ElasticPath(
+        client_id=config.elasticpath_client_id,
+        client_secret=config.elasticpath_client_secret
     )
 
     dispatcher.add_handler(CallbackQueryHandler(handle_users_reply))
