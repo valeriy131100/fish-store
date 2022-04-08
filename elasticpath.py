@@ -62,6 +62,18 @@ class ElasticPath:
             f'/files/{image_id}'
         )
 
+    def get_cart(self, cart_id):
+        return self.make_api_call(
+            requests.get,
+            f'/carts/{cart_id}'
+        )
+
+    def get_cart_items(self, cart_id):
+        return self.make_api_call(
+            requests.get,
+            f'/carts/{cart_id}/items'
+        )
+
     def create_cart(self, user_id):
         return self.make_api_call(
             requests.post,
