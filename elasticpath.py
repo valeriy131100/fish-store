@@ -98,3 +98,9 @@ class ElasticPath:
                 }
             }
         )
+
+    def remove_product_from_cart(self, cart_id, item_id):
+        return self.make_api_call(
+            requests.delete,
+            f'/carts/{cart_id}/items/{item_id}'
+        )

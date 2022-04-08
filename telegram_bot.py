@@ -30,6 +30,22 @@ def show_cart(update: Update, redis: Redis, elasticpath: ElasticPath):
 
     cart_price = cart['meta']['display_price']['with_tax']['formatted']
 
+    keyboard = [
+        [
+            InlineKeyboardButton(
+                f'Убрать из корзины {cart_item["name"]}',
+                callback_data=f'/remove {cart_item["id"]}'
+            )
+        ]
+        for cart_item in cart_items
+    ]
+
+    keyboard.append(
+        [InlineKeyboardButton('В меню', callback_data='/menu')]
+    )
+
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
     prepared_cart_items = []
 
     for cart_item in cart_items:
@@ -56,7 +72,8 @@ def show_cart(update: Update, redis: Redis, elasticpath: ElasticPath):
             {formatted_cart_items}
             
             Всего: {cart_price}"""
-        )
+        ),
+        reply_markup=reply_markup
     )
 
     update.callback_query.message.delete()
@@ -145,18 +162,22 @@ def start(update: Update, _, elasticpath: ElasticPath):
 
 
 def handle_menu_choose(update: Update, redis: Redis, elasticpath: ElasticPath):
-    if update.callback_query.data.startswith('/description'):
+    callback = update.callback_query.data
+
+    if callback.startswith('/description'):
         return show_product_description(update, redis, elasticpath)
-    elif update.callback_query.data == '/cart':
+    elif callback == '/cart':
         return show_cart(update, redis, elasticpath)
 
 
 def handle_product_description(update: Update, redis: Redis,
                                elasticpath: ElasticPath):
-    if update.callback_query.data == '/back':
+    callback = update.callback_query.data
+
+    if callback == '/back':
         return start(update, redis, elasticpath)
-    elif update.callback_query.data.startswith('/buy'):
-        _, product_id, weight = update.callback_query.data.split()
+    elif callback.startswith('/buy'):
+        _, product_id, weight = callback.split()
 
         chat_id = update.callback_query.message.chat_id
 
@@ -165,12 +186,26 @@ def handle_product_description(update: Update, redis: Redis,
         elasticpath.add_product_to_cart(cart_id, product_id, int(weight))
 
         return 'DESCRIPTION'
-    elif update.callback_query.data == '/cart':
+    elif callback == '/cart':
         return show_cart(update, redis, elasticpath)
 
 
 def handle_cart(update: Update, redis: Redis, elasticpath: ElasticPath):
-    return 'CART'
+    callback = update.callback_query.data
+
+    if callback == '/menu':
+        return start(update, redis, elasticpath)
+    elif callback.startswith('/remove'):
+        _, item_id = callback.split()
+
+        chat_id = update.callback_query.message.chat_id
+        cart_id = redis.get(f'cart-{chat_id}')
+
+        if cart_id is None:
+            raise ValueError
+
+        elasticpath.remove_product_from_cart(cart_id, item_id)
+        return show_cart(update, redis, elasticpath)
 
 
 def handle_users_reply(update: Update, context: CallbackContext):
