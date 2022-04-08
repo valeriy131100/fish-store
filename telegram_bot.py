@@ -186,6 +186,8 @@ def handle_product_description(update: Update, redis: Redis,
 
         elasticpath.add_product_to_cart(cart_id, product_id, int(weight))
 
+        update.callback_query.answer(text='Продукт добавлен в корзину!')
+
         return 'DESCRIPTION'
     elif callback == '/cart':
         return show_cart(update, redis, elasticpath)
