@@ -112,7 +112,7 @@ class ElasticPath:
             json={
                 'data': {
                     'type': 'customer',
-                    'name': chat_id,
+                    'name': str(chat_id),
                     'email': email,
                     'password': 'replace_me_in_the_future'
                 }
